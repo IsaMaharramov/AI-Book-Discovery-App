@@ -1,0 +1,21 @@
+# Python stuff
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment (NEVER push this!)
+venv/
+.venv/
+env/
+
+# Environment Variables (CRITICAL for security)
+.env
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
