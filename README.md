@@ -24,7 +24,7 @@ This app uses a **Vision-Language Model (VLM)** pipeline to:
 
 ---
 
-## Engineering Highlights (Why this isn't just a tutorial project)
+## Engineering Highlights
 * **VLM Implementation:** Utilizes GPT-4o with `detail: high` parameter to handle complex, small-scale text extraction on physical objects.
 * **JSON Mode Enforcement:** Strictly enforces structured data output from the LLM to ensure system stability and prevent parsing errors.
 * **Semantic Recommender:** Moves beyond keyword matching by using LLM reasoning to understand the "vibe" of a user's preference rather than just genre tags.
