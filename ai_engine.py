@@ -3,6 +3,7 @@ import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
+from books_api import get_book_metadata
 
 # Load variables from .env
 load_dotenv()
@@ -56,22 +57,45 @@ def extract_books(image_path):
     return result.get("books", result) # Handles different JSON structures
 
 def get_recommendations(book_list, user_prefs):
-    """Match the extracted books against user preferences."""
-    prompt = f"""
-    The user likes: {user_prefs}
-    Available books on the shelf: {json.dumps(book_list)}
+    """Match extracted books against preferences using RAG (Retrieval-Augmented Generation)."""
     
-    Act as a professional librarian. Based on the user's preferences, pick the top 3 books from the list.
-    Explain briefly (1-2 sentences) why each is a good match.
-    If none match well, suggest the closest one and explain why.
+    # 1. RETRIEVAL: Get real-world data for the books we found
+    enriched_books = []
+    # We limit to the top 7-8 to keep the API calls fast and the prompt clean
+    for book in book_list[:8]: 
+        metadata = get_book_metadata(book['title'], book['author'])
+        if metadata:
+            # Merge the vision data with the API data
+            book.update(metadata)
+            enriched_books.append(book)
+    
+    # Use the enriched list if we found matches, otherwise fall back to original
+    context_data = enriched_books if enriched_books else book_list
+
+    # 2. AUGMENTATION: Build a prompt with 'Ground Truth' data
+    prompt = f"""
+    USER PREFERENCES: {user_prefs}
+    
+    VERIFIED BOOK CONTEXT (from Google Books API):
+    {json.dumps(context_data, indent=2)}
+    
+    TASK:
+    Act as a professional librarian. Based on the user's preferences AND the verified data above:
+    1. Pick the top 3 matches.
+    2. Use the 'rating' and 'desc' (description) from the context to justify your choices.
+    3. If a 'link' is provided, include it as a call-to-action for the user.
+    
+    Tone: Professional, insightful, and slightly witty.
     """
     
+    # 3. GENERATION: GPT-4o now reasons based on the data we provided
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": "You are a helpful and witty librarian."},
+            {"role": "system", "content": "You are a grounded AI librarian. You only recommend books present in the provided context."},
             {"role": "user", "content": prompt}
         ]
     )
     
-    return response.choices[0].message.content
+    # Return the AI text AND the data list so app.py can show the covers/stars
+    return response.choices[0].message.content, enriched_books

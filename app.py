@@ -3,10 +3,10 @@ import os
 from ai_engine import extract_books, get_recommendations
 
 # Page Config - Makes it look good on mobile
-st.set_page_config(page_title="Shelf Scanner", page_icon="📚")
+st.set_page_config(page_title="Perspicua - AI Shelf Scanner", page_icon="🔍")
 
-st.title("Shelf Scanner 📚")
-st.markdown("Scan a bookshelf and get AI-powered recommendations based on your taste.")
+st.title("Perspicua 🔍")
+st.markdown("Scan a bookshelf and get AI-powered recommendations based on real-time data.")
 
 # 1. User Inputs
 prefs = st.text_input("What kind of books do you like?", placeholder="e.g. Sci-fi with deep world-building, or dark history")
@@ -20,27 +20,50 @@ if st.button("Scan & Recommend", use_container_width=True):
     elif not uploaded_file:
         st.error("Please upload or take a photo of a bookshelf.")
     else:
-        with st.spinner("🤖 AI is reading the spines..."):
+        with st.spinner("🤖 AI is reading the spines and checking real-world data..."):
             try:
-                # Save the uploaded file temporarily so our engine can read it
+                # Save the uploaded file temporarily
                 temp_filename = "temp_shelf_image.jpg"
                 with open(temp_filename, "wb") as f:
                     f.write(uploaded_file.getbuffer())
 
-                # Step 1: Extract titles using Vision
+                # Step 1 -> Extract titles using Vision
                 book_list = extract_books(temp_filename)
                 
                 if not book_list:
                     st.warning("🕵️‍♂️ I couldn't find any readable book titles on this shelf. Try a clearer photo!")
                 else:
-                    # Show the user what we found
                     with st.expander("See detected books"):
                         st.write(book_list)
 
-                    # Step 2: Get personalized recommendations
+                    # Step 2 -> Get personalized recommendations + RAG data
+                    # Note: now unpack TWO variables from the function
+                    recommendations, enriched_list = get_recommendations(book_list, prefs)
+                    
                     st.subheader("Top Picks for You")
-                    recommendations = get_recommendations(book_list, prefs)
                     st.markdown(recommendations)
+
+                    # Step 3: Display the "Augmented" Data -> The RAG :)
+
+                    if enriched_list:
+                        st.divider()
+                        st.subheader("Verified Book Details")
+                        for book in enriched_list:
+                            # Create a clean card-like layout for each book
+                            with st.container():
+                                col1, col2 = st.columns([1, 4])
+                                with col1:
+                                    if book.get("image"):
+                                        st.image(book["image"])
+                                    else:
+                                        st.write("No Cover")
+                                with col2:
+                                    st.write(f"### {book['title']}")
+                                    st.write(f"**Author:** {book['author']}")
+                                    st.write(f"⭐ **Rating:** {book['rating']}")
+                                    st.caption(book.get("desc", "No description available."))
+                                    st.link_button("View on Google Books", book.get("link", "#"))
+                                st.write("---")
 
                     # Clean up the temp file
                     os.remove(temp_filename)
