@@ -1,3 +1,10 @@
+'''
+Fixing speed leads to high token usage -> fix
+
+
+'''
+
+
 import streamlit as st
 import os
 import asyncio
@@ -48,7 +55,9 @@ if st.button("Analyze Shelf", use_container_width=True):
                                         st.write("No Cover")
                                 with col2:
                                     st.write(f"### {b['title']}")
-                                    st.write(f"**{b['author']}** | ⭐ {b['rating']}")
+                                    
+                                    st.write(f"**{b['author']}** | ⭐ {b['rating']}")   # fix                               
+
                                     st.caption(b.get("desc", ""))
                                     st.link_button("Details", b.get("link", "#"))
                                 st.write("---")
@@ -58,3 +67,15 @@ if st.button("Analyze Shelf", use_container_width=True):
             finally:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+
+
+
+
+#st.markdown("---")
+footer_html = """
+<div style="text-align: center;">
+    <p>© 2026 <b>Isa Maharramov</b>. All rights reserved.</p>
+    <!-- <p><a href="https://yourwebsite.com" target="_blank">Visit my Website</a></p> -->
+</div>
+"""
+st.markdown(footer_html, unsafe_allow_html=True)
