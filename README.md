@@ -76,6 +76,7 @@ streamlit run app.py
 | :--- | :--- | :--- |
 | **Standard Loop** | ~1.5s | ~45s |
 | **Perspicua (Async)** | **~1.5s** | **~3.2s** |
+
 *Note: Results depend on network latency and API response times.*
 
 ## 🛡️ Security & Optimization
@@ -104,5 +105,9 @@ This project is licensed under the [**GNU GPLv3**](LICENSE).
 * **Open-Source Requirement:** If you use, modify, or distribute this code, your project **must** remain open-source under the same license.
 * **Non-Commercial:** You are strictly prohibited from selling this software or using it as a paid product.
 * **Attribution:** You must provide clear credit to the original author.
+
+
+### 💼 Commercial Inquiries
+If you wish to use this software for commercial purposes or within a proprietary product, please contact me directly to discuss licensing terms.
 
 © 2026 **Isa Maharramov**
