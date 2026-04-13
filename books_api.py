@@ -1,13 +1,14 @@
-import requests
+import httpx
+import asyncio
 
-def get_from_google_books(title, author):
-    """Internal helper for Google Books API."""
+async def fetch_google_books(client, title, author):
     query = f"intitle:{title} inauthor:{author}"
     url = f"https://www.googleapis.com/books/v1/volumes?q={query}&maxResults=1"
     try:
-        res = requests.get(url, timeout=5).json()
-        if "items" in res:
-            item = res["items"][0]["volumeInfo"]
+        resp = await client.get(url, timeout=5)
+        data = resp.json()
+        if "items" in data:
+            item = data["items"][0]["volumeInfo"]
             return {
                 "rating": item.get("averageRating", "N/A"),
                 "desc": item.get("description", "No description available.")[:250],
@@ -19,13 +20,13 @@ def get_from_google_books(title, author):
         return None
     return None
 
-def get_from_open_library(title):
-    """Internal helper for Open Library API."""
+async def fetch_open_library(client, title):
     url = f"https://openlibrary.org/search.json?title={title}&limit=1"
     try:
-        res = requests.get(url, timeout=5).json()
-        if res.get("docs"):
-            doc = res["docs"][0]
+        resp = await client.get(url, timeout=5)
+        data = resp.json()
+        if data.get("docs"):
+            doc = data["docs"][0]
             return {
                 "rating": doc.get("ratings_average", "N/A"),
                 "desc": "Subjects: " + ", ".join(doc.get("subject", []))[:200],
@@ -37,22 +38,20 @@ def get_from_open_library(title):
         return None
     return None
 
-def get_book_metadata(title, author):
-    """
-    Perspicua Engine: Orchestrates multiple sources to get the best data.
-    The core of RAG Retrieval step.
-    """
-    # Try Google Books first
-    data = get_from_google_books(title, author)
+async def get_book_metadata(client, title, author):
+    data = await fetch_google_books(client, title, author)
     
-    # If Google fails or doesn't have a description, try Open Library
     if not data or data.get("desc") == "No description available.":
-        ol_data = get_from_open_library(title)
+        ol_data = await fetch_open_library(client, title)
         if ol_data:
-            # If had some Google data but no desc, merge them
             if data:
                 data.update({"desc": ol_data["desc"], "source": "Google+OpenLibrary"})
             else:
                 data = ol_data
-                
     return data
+
+async def get_all_book_metadata(book_list):
+    """Orchestrates parallel retrieval for the entire shelf list."""
+    async with httpx.AsyncClient() as client:
+        tasks = [get_book_metadata(client, b['title'], b['author']) for b in book_list]
+        return await asyncio.gather(*tasks)
