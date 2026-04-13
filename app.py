@@ -1,9 +1,6 @@
 '''
 Fixing speed leads to high token usage -> fix
-
-
 '''
-
 
 import streamlit as st
 import os
@@ -70,8 +67,6 @@ if st.button("Analyze Shelf", use_container_width=True):
 
 
 
-
-#st.markdown("---")
 footer_html = """
 <div style="text-align: center;">
     <p>© 2026 <b>Isa Maharramov</b>. All rights reserved.</p>
