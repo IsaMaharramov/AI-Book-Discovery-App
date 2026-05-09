@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  perspicua:
+    build: .
+    container_name: perspicua_app
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - .:/app # to map
+    restart: always

@@ -1,5 +1,5 @@
 # ---------------------------------------------------------
-# Perspicua AI Engine
+# Perspicua AI Engine - Semantic Brain & Telemetry
 # Developed by: Isa Maharramov
 # License: GNU GPLv3 (Open-Source / Non-Commercial)
 # Copyright (c) 2026 Isa Maharramov
@@ -9,12 +9,19 @@ import base64
 import os
 import json
 import asyncio
+import numpy as np
 from openai import OpenAI
 from dotenv import load_dotenv
 from books_api import get_all_book_metadata
+from database import init_db, update_book_embedding, generate_slug
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def get_embedding(text):
+    """Generates a 1536-dimensional vector using OpenAI's latest model."""
+    text = text.replace("\n", " ")
+    return client.embeddings.create(input=[text], model="text-embedding-3-small").data[0].embedding
 
 def encode_image(image_path):
     """Encodes a local image file to base64 for vision processing."""
@@ -24,75 +31,89 @@ def encode_image(image_path):
 def extract_books(image_path):
     """Uses GPT-4o Vision to extract raw titles/authors from stylized spines."""
     base64_image = encode_image(image_path)
-    
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {
-                "role": "system",
-                "content": "You are a high-precision library digitization robot. Scan the shelf exhaustively (20-40 books). Return strictly a JSON object with a key 'books' containing a list of objects with 'title' and 'author'."
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Extract every single book title and author from this image. Focus on vertical or stylized text on spines."},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}", "detail": "high"}}
-                ]
-            }
+            {"role": "system", "content": "You are a high-precision library digitization robot. Scan the shelf exhaustively. Return strictly a JSON object with 'books'."},
+            {"role": "user", "content": [
+                {"type": "text", "text": "Extract title and author for every book."},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}", "detail": "high"}}
+            ]}
         ],
         response_format={"type": "json_object"}
     )
-    result = json.loads(response.choices[0].message.content)
-    return result.get("books", [])
+    return json.loads(response.choices[0].message.content).get("books", [])
 
-async def get_recommendations(book_list, user_prefs):
+async def get_recommendations(book_list, user_prefs, status_cb=None):
     """
-    Performs Chain of Verification (Self-Healing) by comparing 
-    Vision data with API Ground Truth before recommending.
+    Performs Chain of Verification & Semantic Search with live telemetry.
     """
-    # 1. Fetch live metadata for the entire inventory
+    def log(msg):
+        if status_cb: status_cb(msg)
+
+    log("🔍 Initializing Semantic Brain & Database...")
+    await init_db()
+    
+    log(f"⚡ Fetching metadata for {len(book_list)} items...")
     all_metadata = await get_all_book_metadata(book_list)
     
-    # 2. Build the Verification Prompt
-    # This provides the LLM with both the 'noisy' image data and the 'clean' API data
+    # Calculate cache stats for telemetry
+    cache_hits = sum(1 for b in all_metadata if b and b.get('source') == 'Cache')
+    log(f"🧠 Memory Layer: {cache_hits} hits, {len(book_list)-cache_hits} new lookups.")
+
+    log("🧬 Vectorizing user preferences...")
+    query_vector = np.array(get_embedding(user_prefs))
+    
+    scored_books = []
+    log("🧮 Calculating Cosine Similarity in 1536-D space...")
+    
+    for book in all_metadata:
+        if not book or not book.get('description'): continue
+        
+        embedding_data = book.get('embedding')
+        if not embedding_data:
+            # Generate new embedding if missing in cache
+            combined_text = f"{book['title']} {book['description']}"
+            vector = get_embedding(combined_text)
+            vector_np = np.array(vector, dtype=np.float32)
+            
+            # Update cache with the new vector
+            slug = generate_slug(book['title'], book['author'])
+            await update_book_embedding(slug, vector_np.tobytes())
+            book_vector = vector_np
+        else:
+            # Load vector from binary blob
+            book_vector = np.frombuffer(embedding_data, dtype=np.float32)
+
+        # Mathematical similarity score
+        score = np.dot(query_vector, book_vector)
+        scored_books.append((score, book))
+
+    # Sort and take top matches
+    scored_books.sort(key=lambda x: x[0], reverse=True)
+    top_matches = [b for score, b in scored_books[:5]]
+
+    log(f"✨ Found {len(top_matches)} semantic matches. Starting reasoning...")
+    
     prompt = f"""
-    USER PREFERENCES: {user_prefs}
+    USER PREF: {user_prefs}
+    TOP SEMANTIC MATCHES: {json.dumps(top_matches, indent=2)}
     
-    RAW VISION DATA (From Spines):
-    {json.dumps(book_list, indent=2)}
-    
-    API METADATA (Verified Ground Truth):
-    {json.dumps(all_metadata, indent=2)}
-    
-    INSTRUCTIONS:
-    1. SELF-HEALING: Cross-reference 'Raw Vision Data' with 'API Metadata'. 
-       - Correct OCR misreads (e.g., if vision saw "19B4" but API found "1984", use "1984").
-       - Discard detections that failed to return valid book metadata.
-    
-    2. ANALYSIS: Evaluate the corrected inventory against the USER PREFERENCES.
-    
-    3. SELECTION: Recommend the top 3-5 best matches.
-    
-    4. OUTPUT: Provide a reasoning for each choice (using 'desc' and 'rating') and include the 'link'.
+    TASK: Using the 'description' and 'rating', explain why these matches are perfect.
+    Be witty and professional. Fix any minor OCR typos found in titles.
     """
     
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {
-                "role": "system", 
-                "content": "You are Perspicua. You use Chain-of-Verification logic to fix visual OCR errors with database ground truth before reasoning."
-            },
+            {"role": "system", "content": "You are Perspicua. You provide deep reasoning for semantic book matches."},
             {"role": "user", "content": prompt}
         ]
     )
     
-    # 3. Create the enriched list for the UI display
-    enriched_books = []
-    for i, meta in enumerate(all_metadata):
-        if meta:
-            book = book_list[i].copy()
-            book.update(meta)
-            enriched_books.append(book)
-    
-    return response.choices[0].message.content, enriched_books
+    # Remove binary embeddings before sending to UI to keep it lightweight
+    for b in all_metadata:
+        if b and 'embedding' in b: b.pop('embedding')
+
+    log("✅ Analysis complete. Rendering results.")
+    return response.choices[0].message.content, all_metadata

@@ -1,21 +1,76 @@
-# Python stuff
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
 
-# Virtual Environment (NEVER push this!)
+
+.env
+.env.local
+.env.*.local
+.flaskenv
+
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+
 venv/
 .venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
-# Environment Variables (CRITICAL for security)
-.env
 
-# OS-specific files
-.DS_Store
-Thumbs.db
+dist/
+build/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Logs and databases
+
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+
+
+.idea/
+*.iws
+
+
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+*.code-workspace
+
+
+temp_shelf_*.jpg
+temp_shelf_*.jpeg
+temp_shelf_*.png
+
+
 *.log
+perspicua_system.log
+
+
 *.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+
+
+*.npy
+*.pickle
+
+
+docker-compose.override.yml
+.docker/
+
+
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
