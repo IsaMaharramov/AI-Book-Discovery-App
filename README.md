@@ -1,5 +1,9 @@
 # Perspicua: AI-Powered Semantic Shelf Scanner
 
+<div align="center">
+  <img src="images/perspicua.webp" width="600">
+</div>
+
 **Perspicua** is a high-performance Vision-AI application designed to solve the "Paradox of Choice" in libraries and bookstores. By combining **GPT-4o Vision** with a **Vector Embedding Brain** and an **Asynchronous Retrieval Pipeline**, Perspicua turns a simple photo of a bookshelf into a semantically searchable digital library.
 
 ---
