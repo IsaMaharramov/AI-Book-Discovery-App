@@ -76,6 +76,8 @@ OPENAI_API_KEY=your_actual_openai_key_here
 streamlit run app.py
 ```
 
+---
+
 ## Performance Benchmarks
 
 | Phase | Standard Execution | Perspicua (Cached & Async) |
@@ -84,9 +86,12 @@ streamlit run app.py
 | **Recommendation Precision** | Keyword-based | **Semantic/Context-aware** |
 | **Data Persistence** | None (Stateless) | **Persistent Local Memory** |
 
+---
 
 ## License & Usage
 This project is licensed under the GNU GPLv3.
+
+---
 
 ## Terms of Use:
 **Open-Source Requirement:** Any distribution or modification must remain open-source under the same license.
@@ -95,7 +100,11 @@ This project is licensed under the GNU GPLv3.
 
 **Attribution:** Clear credit to Isa Maharramov is required.
 
+---
+
 ## Commercial Inquiries
 For proprietary or commercial licensing, please contact the author directly.
 
-© 2026 Isa Maharramov
+---
+
+Copyright © 2026 Isa Maharramov
