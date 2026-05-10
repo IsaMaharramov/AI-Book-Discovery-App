@@ -1,10 +1,3 @@
-# ---------------------------------------------------------
-# Perspicua AI Engine - UI & Production Guard
-# Developed by: Isa Maharramov
-# License: GNU GPLv3 (Open-Source / Non-Commercial)
-# Copyright (c) 2026 Isa Maharramov
-# ---------------------------------------------------------
-
 import streamlit as st
 import os
 import asyncio
@@ -15,16 +8,13 @@ from ai_engine import extract_books, get_recommendations
 
 st.set_page_config(page_title="Perspicua", page_icon="🔍", layout="wide")
 
-# --- UI Components: Sidebar Telemetry ---
 st.sidebar.title("🛠️ System Telemetry")
 status_container = st.sidebar.container()
 
 def update_status(msg):
-    """Helper to write logs to the sidebar terminal."""
     status_container.code(f"> {msg}")
 
 def process_and_validate_image(uploaded_file, max_dim=2048):
-    """Resizes and compresses images to optimize tokens and prevent DoS."""
     img = Image.open(uploaded_file)
     if img.mode != 'RGB':
         img = img.convert('RGB')
@@ -87,7 +77,7 @@ if st.button("Analyze Library", use_container_width=True):
                     final_book_list = list(unique_map.values())
                     update_status(f"✅ Library Scan Complete. Found {len(final_book_list)} unique books.")
 
-                    # Execute recommendation engine
+                    # Recommendation engine
                     recommendations, metadata = asyncio.run(
                         get_recommendations(final_book_list, prefs, status_cb=update_status)
                     )
@@ -113,13 +103,11 @@ if st.button("Analyze Library", use_container_width=True):
                         st.divider()
                         st.subheader("📚 Library Gallery")
                         
-                        # 🛡️ NEW: Filter out None values to prevent attribute errors
                         valid_metadata = [b for b in metadata if b is not None]
                         
                         if not valid_metadata:
                             st.info("Inventory processed, but no detailed metadata was found for these items.")
                         else:
-                            # --- Grid Layout (3 columns) ---
                             cols = st.columns(3)
                             for idx, b in enumerate(valid_metadata):
                                 with cols[idx % 3]: 
@@ -152,7 +140,7 @@ if st.button("Analyze Library", use_container_width=True):
 footer_html = """
 <div style="text-align: center;">
     <p>© 2026 <b>Isa Maharramov</b>. All rights reserved.</p>
-    <p><a href="https://yourwebsite.com" target="_blank" style="color: #ff4b4b; text-decoration: none;">Visit My Website</a></p>
+    <p><a href="https://maharramov.ch" target="_blank" style="color: #ff4b4b; text-decoration: none;">Visit My Website</a></p>
     <p style="font-size: 0.8em; color: grey;">Licensed under GNU GPLv3</p>
 </div>
 """

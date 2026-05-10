@@ -1,21 +1,12 @@
-# ---------------------------------------------------------
-# Perspicua AI Engine - Enhanced Metadata Orchestrator
-# Developed by: Isa Maharramov
-# License: GNU GPLv3
-# Copyright (c) 2026 Isa Maharramov
-# ---------------------------------------------------------
-
 import httpx
 import asyncio
 import logging
 from database import get_cached_book, save_to_cache, init_db
 
-# Configure logging to monitor cache hits vs network misses
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def fetch_with_retry(client, url, retries=3, backoff_factor=2):
-    """Handles API calls with Exponential Backoff for HTTP 429 errors."""
     for i in range(retries):
         try:
             resp = await client.get(url, timeout=10)
@@ -36,7 +27,6 @@ async def fetch_with_retry(client, url, retries=3, backoff_factor=2):
     return None
 
 async def fetch_google_books(client, title, author):
-    """Retrieves metadata from Google Books API."""
     query = f"intitle:{title} inauthor:{author}"
     url = f"https://www.googleapis.com/books/v1/volumes?q={query}&maxResults=1"
     
@@ -55,7 +45,6 @@ async def fetch_google_books(client, title, author):
     return None
 
 async def fetch_open_library(client, title):
-    """Retrieves metadata from Open Library API as a fallback."""
     url = f"https://openlibrary.org/search.json?title={title}&limit=1"
     data = await fetch_with_retry(client, url)
     if data and data.get("docs"):
@@ -72,8 +61,6 @@ async def fetch_open_library(client, title):
     return None
 
 async def get_book_metadata(client, title, author):
-    """Orchestrates the Cache-Aside pattern for metadata retrieval."""
-    # 1. Check Memory Layer first
     cached_data = await get_cached_book(title, author)
     if cached_data:
         logger.info(f"Cache HIT: {title}")
@@ -81,10 +68,8 @@ async def get_book_metadata(client, title, author):
 
     logger.info(f"Cache MISS: {title}. Fetching from APIs...")
 
-    # 2. If Miss: Fetch from Google Books
     data = await fetch_google_books(client, title, author)
     
-    # 3. Fallback to Open Library if description is missing
     if not data or data.get("desc") == "No description available.":
         ol_data = await fetch_open_library(client, title)
         if ol_data:
@@ -93,16 +78,13 @@ async def get_book_metadata(client, title, author):
             else:
                 data = ol_data
 
-    # 4. Save to Memory Layer for future requests
     if data:
-        # Ensure we use the detected title/author if the vision model had a typo
         await save_to_cache(title, author, data)
         
     return data
 
 async def get_all_book_metadata(book_list):
-    """Initializes DB and gathers metadata for the entire shelf inventory."""
-    await init_db() # Ensure the SQLite table exists
+    await init_db()
     async with httpx.AsyncClient() as client:
         tasks = [get_book_metadata(client, b['title'], b.get('author', '')) for b in book_list]
         return await asyncio.gather(*tasks)
